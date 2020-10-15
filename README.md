@@ -19,4 +19,27 @@ assert!(! hello("World".to_string()));
 assert!(! memoized_original_hello("World".to_string()));
 ```
 
+This is, aside from the `assert`s, expanded into:
+
+```
+// This is obviously further expanded before compiling.
+lazy_static! {
+  static ref MEMOIZED_MAPPING_HELLO : Mutex<HashMap<String, bool>>;
+}
+
+fn memoized_original_hello(arg: String) -> bool {
+    arg.len()%2 == 0
+}
+
+fn hello(arg: String) -> bool {
+    let mut hm = &mut MEMOIZED_MAPPING_HELLO.lock().unwrap();
+    if let Some(r) = hm.get(&arg) {
+        return r.clone();
+    }
+    let r = memoized_original_hello(arg.clone());
+    hm.insert(arg, r.clone());
+    r
+}
+```
+
 Intentionally not yet on crates.rs.

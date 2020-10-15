@@ -5,7 +5,6 @@ use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 
 use lazy_static::lazy_static;
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::{self, ToTokens};
 
 use std::collections::HashMap;
@@ -24,7 +23,6 @@ pub fn memoize(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
     let sig = &func.sig;
 
-    let original_name = &func.sig.ident;
     let fn_name = &func.sig.ident.to_string();
     let renamed_name = format!("memoized_original_{}", fn_name);
     let map_name = format!("memoized_mapping_{}", fn_name);
@@ -65,7 +63,7 @@ pub fn memoize(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let type_in = type_in.unwrap();
-    let map_ident = syn::Ident::new(&map_name, sig.span());
+    let map_ident = syn::Ident::new(&map_name.to_uppercase(), sig.span());
     let store = quote::quote! {
         lazy_static::lazy_static! {
             static ref #map_ident : std::sync::Mutex<std::collections::HashMap<#type_in, #type_out>> =
@@ -104,17 +102,6 @@ lazy_static! {
     static ref STORE: Mutex<HashMap<i32, bool>> = Mutex::new(HashMap::new());
 }
 
-// fn memoizer(a: i32) -> bool {
-//    let mut hm = &mut STORE.lock().unwrap();
-//    if let Some(r) = hm.get(&a) {
-//        return *r;
-//    }
-//    let r = memoized_function(a);
-//    hm.insert(a, r);
-//    r
-// }
-
 #[cfg(test)]
 mod tests {
-    use super::*;
 }

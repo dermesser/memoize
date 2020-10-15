@@ -3,12 +3,8 @@
 use syn;
 use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 
-use lazy_static::lazy_static;
 use proc_macro::TokenStream;
 use quote::{self, ToTokens};
-
-use std::collections::HashMap;
-use std::sync::Mutex;
 
 /*
  * TODO:
@@ -121,10 +117,6 @@ pub fn memoize(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #memoizer
     })
     .into()
-}
-
-lazy_static! {
-    static ref STORE: Mutex<HashMap<i32, bool>> = Mutex::new(HashMap::new());
 }
 
 #[cfg(test)]

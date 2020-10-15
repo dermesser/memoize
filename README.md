@@ -9,15 +9,15 @@ look at the `examples/`, if you want to know more:
 ```rust
 use memoize::memoize;
 #[memoize]
-fn hello(arg: String) -> bool {
-     arg.len()%2 == 0
+fn hello(arg: String, arg2: usize) -> bool {
+     arg.len()%2 == arg2
 }
 
 // `hello` is only called once here.
-assert!(! hello("World".to_string()));
-assert!(! hello("World".to_string()));
+assert!(! hello("World".to_string(), 0));
+assert!(! hello("World".to_string(), 0));
 // Sometimes one might need the original function.
-assert!(! memoized_original_hello("World".to_string()));
+assert!(! memoized_original_hello("World".to_string(), 0));
 ```
 
 This is, aside from the `assert`s, expanded into:

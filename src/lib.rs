@@ -6,33 +6,26 @@ use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 use proc_macro::TokenStream;
 use quote::{self, ToTokens};
 
-trait MemoizeStore<K, V>
-where
-    K: std::hash::Hash,
-{
-    fn get(&mut self, k: &K) -> Option<&V>;
-    fn put(&mut self, k: K, v: V);
-}
-
-impl<K: std::hash::Hash + Eq + Clone, V> MemoizeStore<K, V> for std::collections::HashMap<K, V> {
-    fn get(&mut self, k: &K) -> Option<&V> {
-        std::collections::HashMap::<K, V>::get(self, k)
-    }
-    fn put(&mut self, k: K, v: V) {
-        self.insert(k, v);
-    }
-}
-
+// This implementation of the storage backend does not depend on any more crates.
 #[cfg(not(feature = "full"))]
 mod store {
     use proc_macro::TokenStream;
 
     /// Returns tokenstreams (for quoting) of the store type and an expression to initialize it.
     pub fn construct_cache(
-        _attr: TokenStream,
+        attr: &TokenStream,
         key_type: proc_macro2::TokenStream,
         value_type: proc_macro2::TokenStream,
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
+        if !attr.is_empty() {
+            return (
+                syn::Error::new_spanned(proc_macro2::TokenStream::from(attr.clone()),
+                    "memoize error: Attributes are specified, but the feature 'full' is not enabled! To fix this, compile with `--features=full`.",
+                )
+                .to_compile_error(),
+                proc_macro2::TokenStream::new(),
+            );
+        }
         // This is the unbounded default.
         (
             quote::quote! { std::collections::HashMap<#key_type, #value_type> },
@@ -49,20 +42,11 @@ mod store {
     }
 }
 
+// This implementation of the storage backend also depends on the `lru` crate.
 #[cfg(feature = "full")]
 mod store {
-    use super::MemoizeStore;
     use proc_macro::TokenStream;
     use syn::parse as p;
-
-    impl<K: std::hash::Hash + Eq + Clone, V> MemoizeStore<K, V> for lru::LruCache<K, V> {
-        fn get(&mut self, k: &K) -> Option<&V> {
-            lru::LruCache::<K, V>::get(self, k)
-        }
-        fn put(&mut self, k: K, v: V) {
-            lru::LruCache::<K, V>::put(self, k, v);
-        }
-    }
 
     #[derive(Default, Debug, Clone)]
     struct CacheOptions {
@@ -119,7 +103,7 @@ mod store {
         // This is the unbounded default.
         match options.lru_max_entries {
             None => (quote::quote! { insert }, quote::quote! { get }),
-            Some(cap) => (quote::quote! { put }, quote::quote! { get }),
+            Some(_) => (quote::quote! { put }, quote::quote! { get }),
         }
     }
 }
@@ -153,10 +137,16 @@ mod store {
  * If you need to use the un-memoized function, it is always available as `memoized_original_{fn}`,
  * in this case: `memoized_original_hello()`.
  *
- * The `memoize` attribute can take further parameters in order to use an LRU cache:
- * `#[memoize(Capacity: 1234)]`.
- *
  * See the `examples` for concrete applications.
+ *
+ * *The following descriptions need the `full` feature enabled.*
+ *
+ * The `memoize` attribute can take further parameters in order to use an LRU cache:
+ * `#[memoize(Capacity: 1234)]`. In that case, instead of a `HashMap` we use an `lru::LruCache`
+ * with the given capacity.
+ *
+ * This mechanism can, in principle, be extended (in the source code) to any other cache mechanism.
+ *
  */
 #[proc_macro_attribute]
 pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {

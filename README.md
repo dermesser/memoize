@@ -44,4 +44,10 @@ fn hello(arg: String, arg2: usize) -> bool {
 
 ```
 
-Intentionally not yet on crates.rs.
+## Contributions
+
+...are always welcome! This being my first procedural-macros crate, I am
+grateful for improvements of functionality and style. Please send a pull
+request, and don't be discouraged if it takes a while for me to review it -- I'm
+sometimes a bit slow to catch up here :)   -- Lewin
+

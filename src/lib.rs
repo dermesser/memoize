@@ -50,53 +50,28 @@ pub fn memoize(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let renamed_name = format!("memoized_original_{}", fn_name);
     let map_name = format!("memoized_mapping_{}", fn_name);
 
-    let input_type;
-    let input_names;
-    let type_out;
+    // Extracted from the function signature.
+    let input_types: Vec<Box<syn::Type>>;
+    let input_names: Vec<Box<syn::Pat>>;
+    let return_type;
 
-    // Only one argument
-    if let syn::FnArg::Receiver(_) = sig.inputs[0] {
-        return TokenStream::from(
-            syn::Error::new(
-                sig.span(),
-                "Cannot memoize method (self-receiver) without arguments!",
-            )
-            .to_compile_error(),
-        );
-    }
-    let mut types = vec![];
-    let mut names = vec![];
-    for a in &sig.inputs {
-        if let syn::FnArg::Typed(ref arg) = a {
-            types.push(arg.ty.clone());
-
-            if let syn::Pat::Ident(_) = &*arg.pat {
-                names.push(arg.pat.clone());
-            } else {
-                return syn::Error::new(sig.span(), "Cannot memoize arbitrary patterns!")
-                    .to_compile_error()
-                    .into();
-            }
-        }
+    match check_signature(sig) {
+        Ok((t, n)) => { input_types = t; input_names = n; },
+        Err(e) => return e.to_compile_error().into()
     }
 
-    // We treat functions with one or with multiple arguments the same: The type is made into a
-    // tuple.
-    input_type = Some(quote::quote! { (#(#types),*) });
-    input_names = Some(names);
+    let input_tuple_type = quote::quote! { (#(#input_types),*) };
 
     match &sig.output {
-        syn::ReturnType::Default => type_out = quote::quote! { () },
-        syn::ReturnType::Type(_, ty) => type_out = ty.to_token_stream(),
+        syn::ReturnType::Default => return_type = quote::quote! { () },
+        syn::ReturnType::Type(_, ty) => return_type = ty.to_token_stream(),
     }
 
     // Construct storage for the memoized keys and return values.
-    let input_type = input_type.unwrap();
-    let input_names = input_names.unwrap();
     let store_ident = syn::Ident::new(&map_name.to_uppercase(), sig.span());
     let store = quote::quote! {
         lazy_static::lazy_static! {
-            static ref #store_ident : std::sync::Mutex<std::collections::HashMap<#input_type, #type_out>> =
+            static ref #store_ident : std::sync::Mutex<std::collections::HashMap<#input_tuple_type, #return_type>> =
                 std::sync::Mutex::new(std::collections::HashMap::new());
         }
     };
@@ -129,6 +104,31 @@ pub fn memoize(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #memoizer
     })
     .into()
+}
+
+fn check_signature(sig: &syn::Signature) -> Result<(Vec<Box<syn::Type>>, Vec<Box<syn::Pat>>), syn::Error> {
+    if let syn::FnArg::Receiver(_) = sig.inputs[0] {
+        return Err(
+            syn::Error::new(
+                sig.span(),
+                "Cannot memoize method (self-receiver) without arguments!",
+            ));
+    }
+
+    let mut types = vec![];
+    let mut names = vec![];
+    for a in &sig.inputs {
+        if let syn::FnArg::Typed(ref arg) = a {
+            types.push(arg.ty.clone());
+
+            if let syn::Pat::Ident(_) = &*arg.pat {
+                names.push(arg.pat.clone());
+            } else {
+                return Err(syn::Error::new(sig.span(), "Cannot memoize arbitrary patterns!"));
+            }
+        }
+    }
+    Ok((types, names))
 }
 
 #[cfg(test)]

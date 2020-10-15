@@ -2,7 +2,7 @@
 name = "memoize"
 version = "0.1.2"
 description = "Attribute macro for auto-memoizing functions with somewhat-simple signatures"
-tags = ["memoization", "cache"]
+keywords = ["memoization", "cache", "proc-macro"]
 authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
 homepage = "https://github.com/dermesser/memoize"
 repository = "https://github.com/dermesser/memoize"

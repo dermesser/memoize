@@ -7,7 +7,7 @@ struct ComplexStruct {
     i: i32,
 }
 
-#[memoize]
+#[memoize(Capacity: 123)]
 fn hello(key: String) -> ComplexStruct {
     println!("hello: {}", key);
     ComplexStruct {

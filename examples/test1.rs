@@ -10,7 +10,11 @@ struct ComplexStruct {
 #[memoize]
 fn hello(key: String) -> ComplexStruct {
     println!("hello: {}", key);
-    ComplexStruct { s: key, b: false, i: 332 }
+    ComplexStruct {
+        s: key,
+        b: false,
+        i: 332,
+    }
 }
 
 fn main() {

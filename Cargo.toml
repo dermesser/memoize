@@ -1,6 +1,6 @@
 [package]
 name = "memoize"
-version = "0.1.1"
+version = "0.1.2"
 description = "Attribute macro for auto-memoizing functions with somewhat-simple signatures"
 tags = ["memoization", "cache"]
 authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]

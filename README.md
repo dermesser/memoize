@@ -21,7 +21,7 @@ assert!(! memoized_original_hello("World".to_string()));
 
 This is, aside from the `assert`s, expanded into:
 
-```
+```rust
 // This is obviously further expanded before compiling.
 lazy_static! {
   static ref MEMOIZED_MAPPING_HELLO : Mutex<HashMap<String, bool>>;

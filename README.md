@@ -1,6 +1,6 @@
 # memoize
 
-[![Docs.rs](https://docs.rs/memoize/badge.svg)](https://docs.rs/memoize)
+[![Docs.rs](https://docs.rs/memoize/badge.svg)](https://crates.io/crates/memoize)
 [![Crates.rs](https://img.shields.io/crates/v/memoize.svg)](https://crates.io/memoize)
 
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions

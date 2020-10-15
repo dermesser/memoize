@@ -3,6 +3,7 @@ name = "memoize"
 version = "0.1.0"
 authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
 edition = "2018"
+license = "MIT"
 
 [lib]
 proc-macro = true

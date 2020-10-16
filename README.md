@@ -51,6 +51,32 @@ fn hello(arg: String, arg2: usize) -> bool {
 }
 ```
 
+## Further Functionality
+
+You can choose to use an [LRU cache](https://crates.io/crates/lru). In fact, if
+you know that a memoized function has an unbounded number of different inputs,
+you should do this! In that case, use the attribute like this:
+
+```rust
+// From examples/test1.rs
+// Compile with --features=full
+use memoize::memoize;
+
+#[derive(Debug, Clone)]
+struct ComplexStruct {
+  // ...
+}
+
+#[memoize(Capacity: 123)]
+fn hello(key: String) -> ComplexStruct {
+  // ...
+}
+```
+
+Adding more caches and configuration options is relatively simple, and a matter
+of parsing attribute parameters. Currently, compiling will fail if you use a
+parameter such as `Capacity` without the feature `full` being enabled.
+
 ## Contributions
 
 ...are always welcome! This being my first procedural-macros crate, I am

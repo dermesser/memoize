@@ -33,8 +33,8 @@ mod store {
         )
     }
 
-    /// Returns tokenstreams (for quoting) of method names for inserting/getting (first/second
-    /// return tuple value).
+    /// Returns names of methods as TokenStreams to insert and get (respectively) elements from a
+    /// store.
     pub fn cache_access_methods(
         _attr: &TokenStream,
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
@@ -53,10 +53,16 @@ mod store {
         lru_max_entries: Option<usize>,
     }
 
+    #[derive(Debug, Clone)]
+    enum CacheOption {
+        LRUMaxEntries(usize),
+    }
+
     syn::custom_keyword!(Capacity);
     syn::custom_punctuation!(Colon, :);
 
-    impl p::Parse for CacheOptions {
+    // To extend option parsing, add functionality here.
+    impl p::Parse for CacheOption {
         fn parse(input: p::ParseStream) -> syn::Result<Self> {
             let la = input.lookahead1();
             if la.peek(Capacity) {
@@ -64,15 +70,32 @@ mod store {
                 let _: Colon = input.parse().unwrap();
                 let cap: syn::LitInt = input.parse().unwrap();
 
-                return Ok(CacheOptions {
-                    lru_max_entries: Some(cap.base10_parse()?),
-                });
+                return Ok(CacheOption::LRUMaxEntries(cap.base10_parse()?));
             }
-            Ok(Default::default())
+            Err(la.error())
         }
     }
 
-    /// Returns tokenstreams (for quoting) of the store type and an expression to initialize it.
+    impl p::Parse for CacheOptions {
+        fn parse(input: p::ParseStream) -> syn::Result<Self> {
+            let f: syn::punctuated::Punctuated<CacheOption, syn::Token![,]> =
+                input.parse_terminated(CacheOption::parse)?;
+            let mut opts = Self::default();
+
+            for opt in f {
+                match opt {
+                    CacheOption::LRUMaxEntries(cap) => opts.lru_max_entries = Some(cap),
+                }
+            }
+            Ok(opts)
+        }
+    }
+
+    /// Returns TokenStreams to be used in quote!{} for parametrizing the memoize store variable,
+    /// and initializing it.
+    ///
+    /// First return value: Type of store ("Container<K,V>").
+    /// Second return value: Initializer syntax ("Container::<K,V>::new()").
     pub fn construct_cache(
         attr: &TokenStream,
         key_type: proc_macro2::TokenStream,
@@ -93,8 +116,8 @@ mod store {
         }
     }
 
-    /// Returns tokenstreams (for quoting) of method names for inserting/getting (first/second
-    /// return tuple value).
+    /// Returns names of methods as TokenStreams to insert and get (respectively) elements from a
+    /// store.
     pub fn cache_access_methods(
         attr: &TokenStream,
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {

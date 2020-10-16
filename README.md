@@ -1,7 +1,7 @@
 # memoize
 
-[![Docs.rs](https://docs.rs/memoize/badge.svg)](https://crates.io/crates/memoize)
-[![Crates.rs](https://img.shields.io/crates/v/memoize.svg)](https://crates.io/memoize)
+[![Docs.rs](https://docs.rs/memoize/badge.svg)](https://docs.rs/memoize)
+[![Crates.rs](https://img.shields.io/crates/v/memoize.svg)](https://crates.io/crates/memoize)
 
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions
 with one or more `Clone`-able arguments, and a `Clone`-able return type. That's it.

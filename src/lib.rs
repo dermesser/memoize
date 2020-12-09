@@ -49,16 +49,19 @@ mod store {
     use syn::parse as p;
 
     #[derive(Default, Debug, Clone)]
-    struct CacheOptions {
+    pub(crate) struct CacheOptions {
         lru_max_entries: Option<usize>,
+        pub(crate) seconds_to_live: Option<u64>,
     }
 
     #[derive(Debug, Clone)]
     enum CacheOption {
         LRUMaxEntries(usize),
+        SecondsToLive(u64),
     }
 
     syn::custom_keyword!(Capacity);
+    syn::custom_keyword!(SecondsToLive);
     syn::custom_punctuation!(Colon, :);
 
     // To extend option parsing, add functionality here.
@@ -71,6 +74,13 @@ mod store {
                 let cap: syn::LitInt = input.parse().unwrap();
 
                 return Ok(CacheOption::LRUMaxEntries(cap.base10_parse()?));
+            }
+            if la.peek(SecondsToLive) {
+                let _: SecondsToLive = input.parse().unwrap();
+                let _: Colon = input.parse().unwrap();
+                let cap: syn::LitInt = input.parse().unwrap();
+
+                return Ok(CacheOption::SecondsToLive(cap.base10_parse()?));
             }
             Err(la.error())
         }
@@ -85,6 +95,7 @@ mod store {
             for opt in f {
                 match opt {
                     CacheOption::LRUMaxEntries(cap) => opts.lru_max_entries = Some(cap),
+                    CacheOption::SecondsToLive(sec) => opts.seconds_to_live = Some(sec),
                 }
             }
             Ok(opts)
@@ -103,6 +114,10 @@ mod store {
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
         let options: CacheOptions = syn::parse(attr.clone()).unwrap();
 
+        let value_type = match options.seconds_to_live {
+            None => quote::quote! {#value_type},
+            Some(_) => quote::quote! {(std::time::Instant, #value_type)},
+        };
         // This is the unbounded default.
         match options.lru_max_entries {
             None => (
@@ -219,17 +234,48 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let syntax_names_tuple = quote::quote! { (#(#input_names),*) };
     let syntax_names_tuple_cloned = quote::quote! { (#(#input_names.clone()),*) };
     let (insert_fn, get_fn) = store::cache_access_methods(&attr);
-    let memoizer = quote::quote! {
-        #sig {
-            let mut hm = &mut #store_ident.lock().unwrap();
-            if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                return r.clone();
+    #[cfg(feature = "full")]
+    let memoizer = {
+        let options: store::CacheOptions = syn::parse(attr.clone()).unwrap();
+        match options.seconds_to_live {
+            None => quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        return r.clone();
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, r.clone());
+                    r
+                }
+            },
+            Some(ttl) => quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some((last_updated, r)) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        if last_updated.elapsed().as_secs() < #ttl {
+                            return r.clone();
+                        }
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), r.clone()));
+                    r
+                }
             }
-            let r = #memoized_id(#(#input_names.clone()),*);
-            hm.#insert_fn(#syntax_names_tuple, r.clone());
-            r
         }
     };
+    #[cfg(not(feature = "full"))]
+    let memoizer = quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        return r.clone();
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, r.clone());
+                    r
+                }
+            };
 
     (quote::quote! {
         #store

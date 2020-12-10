@@ -78,7 +78,7 @@ of parsing attribute parameters. Currently, compiling will fail if you use a
 parameter such as `Capacity` without the feature `full` being enabled.
 
 
-Another parameter is TimeToLive - it targeting to refresh outdated values.
+Another parameter is TimeToLive - it's targeting to refresh outdated values.
 Example:
 ```rust
 #[memoize(Capacity: 123, TimeToLive: Duration::from_secs(2))]

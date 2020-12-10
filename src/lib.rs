@@ -1,11 +1,10 @@
 #![crate_type = "proc-macro"]
+#![allow(unused_imports)] // Spurious complaints about a required trait import.
 
-use syn;
-use syn::{parse_macro_input, spanned::Spanned, ItemFn};
+use syn::{self, export::ToTokens, parse_macro_input, spanned::Spanned, ItemFn};
 
 use proc_macro::TokenStream;
 use quote::{self};
-use syn::export::ToTokens;
 
 // This implementation of the storage backend does not depend on any more crates.
 #[cfg(not(feature = "full"))]
@@ -47,9 +46,8 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::{parse as p, Expr};
     use syn::export::ToTokens;
-
+    use syn::{parse as p, Expr};
 
     #[derive(Default, Clone)]
     pub(crate) struct CacheOptions {
@@ -267,21 +265,21 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
                     hm.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), r.clone()));
                     r
                 }
-            }
+            },
         }
     };
     #[cfg(not(feature = "full"))]
     let memoizer = quote::quote! {
-                #sig {
-                    let mut hm = &mut #store_ident.lock().unwrap();
-                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                        return r.clone();
-                    }
-                    let r = #memoized_id(#(#input_names.clone()),*);
-                    hm.#insert_fn(#syntax_names_tuple, r.clone());
-                    r
-                }
-            };
+        #sig {
+            let mut hm = &mut #store_ident.lock().unwrap();
+            if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                return r.clone();
+            }
+            let r = #memoized_id(#(#input_names.clone()),*);
+            hm.#insert_fn(#syntax_names_tuple, r.clone());
+            r
+        }
+    };
 
     (quote::quote! {
         #store

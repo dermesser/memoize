@@ -4,7 +4,8 @@ use syn;
 use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 
 use proc_macro::TokenStream;
-use quote::{self, ToTokens};
+use quote::{self};
+use syn::export::ToTokens;
 
 // This implementation of the storage backend does not depend on any more crates.
 #[cfg(not(feature = "full"))]
@@ -46,19 +47,24 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::parse as p;
+    use syn::{parse as p, Expr};
+    use syn::export::ToTokens;
 
-    #[derive(Default, Debug, Clone)]
-    struct CacheOptions {
+
+    #[derive(Default, Clone)]
+    pub(crate) struct CacheOptions {
         lru_max_entries: Option<usize>,
+        pub(crate) time_to_live: Option<Expr>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     enum CacheOption {
         LRUMaxEntries(usize),
+        TimeToLive(Expr),
     }
 
     syn::custom_keyword!(Capacity);
+    syn::custom_keyword!(TimeToLive);
     syn::custom_punctuation!(Colon, :);
 
     // To extend option parsing, add functionality here.
@@ -71,6 +77,13 @@ mod store {
                 let cap: syn::LitInt = input.parse().unwrap();
 
                 return Ok(CacheOption::LRUMaxEntries(cap.base10_parse()?));
+            }
+            if la.peek(TimeToLive) {
+                let _: TimeToLive = input.parse().unwrap();
+                let _: Colon = input.parse().unwrap();
+                let cap: syn::Expr = input.parse().unwrap();
+
+                return Ok(CacheOption::TimeToLive(cap));
             }
             Err(la.error())
         }
@@ -85,6 +98,7 @@ mod store {
             for opt in f {
                 match opt {
                     CacheOption::LRUMaxEntries(cap) => opts.lru_max_entries = Some(cap),
+                    CacheOption::TimeToLive(sec) => opts.time_to_live = Some(sec),
                 }
             }
             Ok(opts)
@@ -103,6 +117,10 @@ mod store {
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
         let options: CacheOptions = syn::parse(attr.clone()).unwrap();
 
+        let value_type = match options.time_to_live {
+            None => quote::quote! {#value_type},
+            Some(_) => quote::quote! {(std::time::Instant, #value_type)},
+        };
         // This is the unbounded default.
         match options.lru_max_entries {
             None => (
@@ -167,6 +185,9 @@ mod store {
  * The `memoize` attribute can take further parameters in order to use an LRU cache:
  * `#[memoize(Capacity: 1234)]`. In that case, instead of a `HashMap` we use an `lru::LruCache`
  * with the given capacity.
+ * `#[memoize(TimeToLive: Duration::from_secs(2))]`. In that case, cached value will be actual
+ * no longer than duration provided and refreshed with next request. If you prefer chrono::Duration,
+ * it can be also used: `#[memoize(TimeToLive: chrono::Duration::hours(9).to_std().unwrap()]`
  *
  * This mechanism can, in principle, be extended (in the source code) to any other cache mechanism.
  *
@@ -219,17 +240,48 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let syntax_names_tuple = quote::quote! { (#(#input_names),*) };
     let syntax_names_tuple_cloned = quote::quote! { (#(#input_names.clone()),*) };
     let (insert_fn, get_fn) = store::cache_access_methods(&attr);
-    let memoizer = quote::quote! {
-        #sig {
-            let mut hm = &mut #store_ident.lock().unwrap();
-            if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                return r.clone();
+    #[cfg(feature = "full")]
+    let memoizer = {
+        let options: store::CacheOptions = syn::parse(attr.clone().into()).unwrap();
+        match options.time_to_live {
+            None => quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        return r.clone();
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, r.clone());
+                    r
+                }
+            },
+            Some(ttl) => quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some((last_updated, r)) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        if last_updated.elapsed() < #ttl {
+                            return r.clone();
+                        }
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), r.clone()));
+                    r
+                }
             }
-            let r = #memoized_id(#(#input_names.clone()),*);
-            hm.#insert_fn(#syntax_names_tuple, r.clone());
-            r
         }
     };
+    #[cfg(not(feature = "full"))]
+    let memoizer = quote::quote! {
+                #sig {
+                    let mut hm = &mut #store_ident.lock().unwrap();
+                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                        return r.clone();
+                    }
+                    let r = #memoized_id(#(#input_names.clone()),*);
+                    hm.#insert_fn(#syntax_names_tuple, r.clone());
+                    r
+                }
+            };
 
     (quote::quote! {
         #store

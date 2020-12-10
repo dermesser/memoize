@@ -9,7 +9,7 @@ struct ComplexStruct {
     i: Instant,
 }
 
-#[memoize(Capacity: 123, TimeToLive: Duration::from_secs(2))]
+#[memoize(TimeToLive: Duration::from_secs(2), Capacity: 123)]
 fn hello(key: String) -> ComplexStruct {
     println!("hello: {}", key);
     ComplexStruct {
@@ -25,7 +25,7 @@ fn main() {
     println!("result: {:?}", hello("ABC".to_string()));
     println!("result: {:?}", hello("DEF".to_string()));
     println!("result: {:?}", hello("ABC".to_string()));  //Same as first
-    thread::sleep(Duration::from_millis(2100));
+    thread::sleep(core::time::Duration::from_millis(2100));
     println!("result: {:?}", hello("EFG".to_string()));
     println!("result: {:?}", hello("ABC".to_string()));  //Refreshed
     println!("result: {:?}", hello("EFG".to_string()));  //Same as first

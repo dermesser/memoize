@@ -46,8 +46,7 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::{parse as p, ExprCall};
-    use std::time::Duration;
+    use syn::{parse as p, ExprCall, ExprMethodCall, Expr};
     use syn::export::ToTokens;
     use syn::spanned::Spanned;
     use std::ops::Deref;
@@ -56,13 +55,13 @@ mod store {
     #[derive(Default, Clone)]
     pub(crate) struct CacheOptions {
         lru_max_entries: Option<usize>,
-        pub(crate) time_to_live: Option<ExprCall>,
+        pub(crate) time_to_live: Option<Expr>,
     }
 
     #[derive(Clone)]
     enum CacheOption {
         LRUMaxEntries(usize),
-        TimeToLive(ExprCall),
+        TimeToLive(Expr),
     }
 
     syn::custom_keyword!(Capacity);
@@ -83,7 +82,7 @@ mod store {
             if la.peek(TimeToLive) {
                 let _: TimeToLive = input.parse().unwrap();
                 let _: Colon = input.parse().unwrap();
-                let cap: syn::ExprCall = input.parse().unwrap();
+                let cap: syn::Expr = input.parse().unwrap();
 
                 return Ok(CacheOption::TimeToLive(cap));
             }

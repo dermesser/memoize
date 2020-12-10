@@ -9,7 +9,7 @@ struct ComplexStruct {
     i: Instant,
 }
 
-#[memoize(Capacity: 123, SecondsToLive: 1)]
+#[memoize(Capacity: 123, SecondsToLive: Duration::from_secs(2))]
 fn hello(key: String) -> ComplexStruct {
     println!("hello: {}", key);
     ComplexStruct {

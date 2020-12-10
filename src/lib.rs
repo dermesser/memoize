@@ -46,18 +46,23 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::parse as p;
+    use syn::{parse as p, ExprCall};
+    use std::time::Duration;
+    use syn::export::ToTokens;
+    use syn::spanned::Spanned;
+    use std::ops::Deref;
+    use syn::parse::{Parser, Parse};
 
-    #[derive(Default, Debug, Clone)]
+    #[derive(Default, Clone)]
     pub(crate) struct CacheOptions {
         lru_max_entries: Option<usize>,
-        pub(crate) seconds_to_live: Option<u64>,
+        pub(crate) time_to_live: Option<ExprCall>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     enum CacheOption {
         LRUMaxEntries(usize),
-        SecondsToLive(u64),
+        TimeToLive(ExprCall),
     }
 
     syn::custom_keyword!(Capacity);
@@ -78,9 +83,9 @@ mod store {
             if la.peek(SecondsToLive) {
                 let _: SecondsToLive = input.parse().unwrap();
                 let _: Colon = input.parse().unwrap();
-                let cap: syn::LitInt = input.parse().unwrap();
+                let cap: syn::ExprCall = input.parse().unwrap();
 
-                return Ok(CacheOption::SecondsToLive(cap.base10_parse()?));
+                return Ok(CacheOption::TimeToLive(cap));
             }
             Err(la.error())
         }
@@ -95,7 +100,7 @@ mod store {
             for opt in f {
                 match opt {
                     CacheOption::LRUMaxEntries(cap) => opts.lru_max_entries = Some(cap),
-                    CacheOption::SecondsToLive(sec) => opts.seconds_to_live = Some(sec),
+                    CacheOption::TimeToLive(sec) => opts.time_to_live = Some(sec),
                 }
             }
             Ok(opts)
@@ -114,7 +119,7 @@ mod store {
     ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
         let options: CacheOptions = syn::parse(attr.clone()).unwrap();
 
-        let value_type = match options.seconds_to_live {
+        let value_type = match options.time_to_live {
             None => quote::quote! {#value_type},
             Some(_) => quote::quote! {(std::time::Instant, #value_type)},
         };
@@ -236,8 +241,8 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (insert_fn, get_fn) = store::cache_access_methods(&attr);
     #[cfg(feature = "full")]
     let memoizer = {
-        let options: store::CacheOptions = syn::parse(attr.clone()).unwrap();
-        match options.seconds_to_live {
+        let options: store::CacheOptions = syn::parse(attr.clone().into()).unwrap();
+        match options.time_to_live {
             None => quote::quote! {
                 #sig {
                     let mut hm = &mut #store_ident.lock().unwrap();
@@ -253,7 +258,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #sig {
                     let mut hm = &mut #store_ident.lock().unwrap();
                     if let Some((last_updated, r)) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                        if last_updated.elapsed().as_secs() < #ttl {
+                        if last_updated.elapsed() < #ttl {
                             return r.clone();
                         }
                     }

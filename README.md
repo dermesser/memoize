@@ -2,6 +2,7 @@
 
 [![Docs.rs](https://docs.rs/memoize/badge.svg)](https://docs.rs/memoize)
 [![Crates.rs](https://img.shields.io/crates/v/memoize.svg)](https://crates.io/crates/memoize)
+[![CI](https://github.com/dermesser/rex/workflows/CI/badge.svg)](actions)
 
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions
 with one or more `Clone`-able arguments, and a `Clone`-able return type. That's it.
@@ -77,17 +78,22 @@ Adding more caches and configuration options is relatively simple, and a matter
 of parsing attribute parameters. Currently, compiling will fail if you use a
 parameter such as `Capacity` without the feature `full` being enabled.
 
+Another parameter is TimeToLive, specifying how long a cached value is allowed
+to live:
 
-Another parameter is TimeToLive - it's targeting to refresh outdated values.
-Example:
 ```rust
 #[memoize(Capacity: 123, TimeToLive: Duration::from_secs(2))]
 ```
-chrono::Duration is also possible, but have to be converted into std::time::Duration
+
+`chrono::Duration` is also possible, but would have to first be converted to
+`std::time::Duration`
+
 ```rust
 #[memoize(TimeToLive: chrono::Duration::hours(3).to_std().unwrap())]
 ```
-cached value will be actual no longer than duration provided and refreshed with next request.
+
+The cached value will never be older than duration provided and instead
+recalculated on the next request.
 
 ## Contributions
 

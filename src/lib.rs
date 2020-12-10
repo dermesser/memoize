@@ -185,6 +185,9 @@ mod store {
  * The `memoize` attribute can take further parameters in order to use an LRU cache:
  * `#[memoize(Capacity: 1234)]`. In that case, instead of a `HashMap` we use an `lru::LruCache`
  * with the given capacity.
+ * `#[memoize(TimeToLive: Duration::from_secs(2))]`. In that case, cached walue will be actual
+ * no longer than duration provided and refreshed with next request. If you prefer chrono::Duration,
+ * it can be also used: `#[memoize(TimeToLive: chrono::Duration::hours(9).to_std().unwrap()]`
  *
  * This mechanism can, in principle, be extended (in the source code) to any other cache mechanism.
  *

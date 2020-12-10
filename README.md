@@ -2,7 +2,7 @@
 
 [![Docs.rs](https://docs.rs/memoize/badge.svg)](https://docs.rs/memoize)
 [![Crates.rs](https://img.shields.io/crates/v/memoize.svg)](https://crates.io/crates/memoize)
-[![CI](https://github.com/dermesser/rex/workflows/CI/badge.svg)](actions)
+[![CI](https://github.com/dermesser/rex/workflows/CI/badge.svg)](https://github.com/dermesser/memoize/actions)
 
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions
 with one or more `Clone`-able arguments, and a `Clone`-able return type. That's it.

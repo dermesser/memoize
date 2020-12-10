@@ -66,7 +66,7 @@ mod store {
     }
 
     syn::custom_keyword!(Capacity);
-    syn::custom_keyword!(SecondsToLive);
+    syn::custom_keyword!(TimeToLive);
     syn::custom_punctuation!(Colon, :);
 
     // To extend option parsing, add functionality here.
@@ -80,8 +80,8 @@ mod store {
 
                 return Ok(CacheOption::LRUMaxEntries(cap.base10_parse()?));
             }
-            if la.peek(SecondsToLive) {
-                let _: SecondsToLive = input.parse().unwrap();
+            if la.peek(TimeToLive) {
+                let _: TimeToLive = input.parse().unwrap();
                 let _: Colon = input.parse().unwrap();
                 let cap: syn::ExprCall = input.parse().unwrap();
 

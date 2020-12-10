@@ -77,6 +77,16 @@ Adding more caches and configuration options is relatively simple, and a matter
 of parsing attribute parameters. Currently, compiling will fail if you use a
 parameter such as `Capacity` without the feature `full` being enabled.
 
+
+Another parameter is TimeToLive. Example:
+```rust
+#[memoize(Capacity: 123, TimeToLive: Duration::from_secs(2))]
+```
+chrono::Duration is also possible, but have to be converted into std::time::Duration
+```rust
+#[memoize(TimeToLive: chrono::Duration::hours(3).to_std().unwrap())]
+```
+
 ## Contributions
 
 ...are always welcome! This being my first procedural-macros crate, I am

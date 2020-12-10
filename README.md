@@ -78,7 +78,8 @@ of parsing attribute parameters. Currently, compiling will fail if you use a
 parameter such as `Capacity` without the feature `full` being enabled.
 
 
-Another parameter is TimeToLive. Example:
+Another parameter is TimeToLive - it targeting to refresh outdated values.
+Example:
 ```rust
 #[memoize(Capacity: 123, TimeToLive: Duration::from_secs(2))]
 ```
@@ -86,6 +87,7 @@ chrono::Duration is also possible, but have to be converted into std::time::Dura
 ```rust
 #[memoize(TimeToLive: chrono::Duration::hours(3).to_std().unwrap())]
 ```
+cached value will be actual no longer than duration provided and refreshed with next request.
 
 ## Contributions
 

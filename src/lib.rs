@@ -4,7 +4,8 @@ use syn;
 use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 
 use proc_macro::TokenStream;
-use quote::{self, ToTokens};
+use quote::{self};
+use syn::export::ToTokens;
 
 // This implementation of the storage backend does not depend on any more crates.
 #[cfg(not(feature = "full"))]
@@ -46,11 +47,9 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::{parse as p, ExprCall, ExprMethodCall, Expr};
+    use syn::{parse as p, Expr};
     use syn::export::ToTokens;
-    use syn::spanned::Spanned;
-    use std::ops::Deref;
-    use syn::parse::{Parser, Parse};
+
 
     #[derive(Default, Clone)]
     pub(crate) struct CacheOptions {

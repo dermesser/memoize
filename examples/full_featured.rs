@@ -19,8 +19,6 @@ fn hello(key: String) -> ComplexStruct {
     }
 }
 
-
-
 fn main() {
     println!("result: {:?}", hello("ABC".to_string()));
     println!("result: {:?}", hello("DEF".to_string()));

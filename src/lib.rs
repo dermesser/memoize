@@ -244,24 +244,30 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         match options.time_to_live {
             None => quote::quote! {
                 #sig {
-                    let mut hm = &mut #store_ident.lock().unwrap();
-                    if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                        return r.clone();
+                    {
+                        let mut hm = &mut #store_ident.lock().unwrap();
+                        if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                            return r.clone();
+                        }
                     }
                     let r = #memoized_id(#(#input_names.clone()),*);
+                    let mut hm = &mut #store_ident.lock().unwrap();
                     hm.#insert_fn(#syntax_names_tuple, r.clone());
                     r
                 }
             },
             Some(ttl) => quote::quote! {
                 #sig {
-                    let mut hm = &mut #store_ident.lock().unwrap();
-                    if let Some((last_updated, r)) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                        if last_updated.elapsed() < #ttl {
-                            return r.clone();
+                    {
+                        let mut hm = &mut #store_ident.lock().unwrap();
+                        if let Some((last_updated, r)) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                            if last_updated.elapsed() < #ttl {
+                                return r.clone();
+                            }
                         }
                     }
                     let r = #memoized_id(#(#input_names.clone()),*);
+                    let mut hm = &mut #store_ident.lock().unwrap();
                     hm.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), r.clone()));
                     r
                 }
@@ -271,11 +277,14 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     #[cfg(not(feature = "full"))]
     let memoizer = quote::quote! {
         #sig {
-            let mut hm = &mut #store_ident.lock().unwrap();
-            if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
-                return r.clone();
+            {
+                let mut hm = &mut #store_ident.lock().unwrap();
+                if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
+                    return r.clone();
+                }
             }
             let r = #memoized_id(#(#input_names.clone()),*);
+            let mut hm = &mut #store_ident.lock().unwrap();
             hm.#insert_fn(#syntax_names_tuple, r.clone());
             r
         }

@@ -153,7 +153,8 @@ mod store {
  * So far, it works on functions with one or more arguments which are `Clone`- and `Hash`-able,
  * returning a `Clone`-able value. Several clones happen within the storage and recall layer, with
  * the assumption being that `memoize` is used to cache such expensive functions that very few
- * `clone()`s do not matter.
+ * `clone()`s do not matter. `memoize` doesn't work on methods (functions with `[&/&mut/]self`
+ * receiver).
  *
  * Calls are memoized for the lifetime of a program, using a statically allocated, Mutex-protected
  * HashMap.

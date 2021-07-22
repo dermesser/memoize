@@ -1,10 +1,10 @@
 #![crate_type = "proc-macro"]
 #![allow(unused_imports)] // Spurious complaints about a required trait import.
 
-use syn::{self, export::ToTokens, parse_macro_input, spanned::Spanned, ItemFn};
+use syn::{self, parse_macro_input, spanned::Spanned, ItemFn};
 
 use proc_macro::TokenStream;
-use quote::{self};
+use quote::{self, ToTokens};
 
 // This implementation of the storage backend does not depend on any more crates.
 #[cfg(not(feature = "full"))]
@@ -46,7 +46,6 @@ mod store {
 #[cfg(feature = "full")]
 mod store {
     use proc_macro::TokenStream;
-    use syn::export::ToTokens;
     use syn::{parse as p, Expr};
 
     #[derive(Default, Clone)]

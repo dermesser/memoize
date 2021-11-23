@@ -42,9 +42,11 @@ fn memoized_original_hello(arg: String, arg2: usize) -> bool {
 }
 
 fn hello(arg: String, arg2: usize) -> bool {
-  let mut hm = &mut MEMOIZED_MAPPING_HELLO.lock().unwrap();
-  if let Some(r) = hm.get(&(arg.clone(), arg2.clone())) {
-    return r.clone();
+  {
+    let mut hm = &mut MEMOIZED_MAPPING_HELLO.lock().unwrap();
+    if let Some(r) = hm.get(&(arg.clone(), arg2.clone())) {
+      return r.clone();
+    }
   }
   let r = memoized_original_hello(arg.clone(), arg2.clone());
   hm.insert((arg, arg2), r.clone());

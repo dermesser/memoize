@@ -7,6 +7,10 @@
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions
 with one or more `Clone`-able arguments, and a `Clone`-able return type. That's it.
 
+**NEWS**: The crate has been updated so that you don't need to separately import `lru`,
+    `lazy_static`, and other dependencies. Now everything should work automatically. Remember to
+    enable the `full` feature to use LRU caching and other additional features.
+
 Read the documentation (`cargo doc --open`) for the sparse details, or take a
 look at the `examples/`, if you want to know more:
 

@@ -1,27 +1,24 @@
 [package]
 name = "memoize"
-version = "0.1.9"
-description = "Attribute macro for auto-memoizing functions with somewhat-simple signatures"
-keywords = ["memoization", "cache", "proc-macro"]
-authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
-homepage = "https://github.com/dermesser/memoize"
-repository = "https://github.com/dermesser/memoize"
-documentation = "https://docs.rs/memoize"
-edition = "2018"
+version = "0.2.0"
+description = "Attribute macro for auto-memoizing functions with somewhat-simple signatures"    
+keywords = ["memoization", "cache", "proc-macro"]    
+authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]    
+homepage = "https://github.com/dermesser/memoize"    
+repository = "https://github.com/dermesser/memoize"    
+documentation = "https://docs.rs/memoize"    
+edition = "2018"    
 license = "MIT"
 
-[lib]
-proc-macro = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-lazy_static = "1.4"
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = { version = "1.0", features = ["full"] }
 
+memoize-inner = { path = "inner/", version = "0.2.0" }
+lazy_static = "1.4"
 lru = { version = "0.6", optional = true }
+
+[workspace]
+members = ["inner/"]
 
 [features]
 default = []
-full = ["lru"]
+full = ["lru", "memoize-inner/full"]

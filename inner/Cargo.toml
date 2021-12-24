@@ -1,0 +1,24 @@
+[package]
+name = "memoize-inner"
+version = "0.2.0"
+description = "Helper crate for memoize."
+authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
+homepage = "https://github.com/dermesser/memoize"
+repository = "https://github.com/dermesser/memoize"
+documentation = "https://docs.rs/memoize-inner"
+edition = "2018"
+license = "MIT"
+
+[lib]
+proc-macro = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lazy_static = "1.4"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["full"] }
+
+[features]
+default = []
+full = []

@@ -201,7 +201,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Extracted from the function signature.
     let input_types: Vec<Box<syn::Type>>;
-    let input_names: Vec<Box<syn::Pat>>;
+    let input_names: Vec<syn::Ident>;
     let return_type;
 
     match check_signature(sig) {
@@ -221,7 +221,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Construct storage for the memoized keys and return values.
     let store_ident = syn::Ident::new(&map_name.to_uppercase(), sig.span());
-    let (cache_type, cache_init) = store::construct_cache(&attr, input_tuple_type, return_type);
+    let (cache_type, cache_init) = store::construct_cache(&attr, input_tuple_type, return_type.clone());
     let store = quote::quote! {
         ::memoize::lazy_static::lazy_static! {
             static ref #store_ident : std::sync::Mutex<#cache_type> =
@@ -234,6 +234,10 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     renamed_fn.sig.ident = syn::Ident::new(&renamed_name, func.sig.span());
     let memoized_id = &renamed_fn.sig.ident;
 
+    // Extract the function name and identifier.
+    let fn_name = func.sig.ident.clone();
+    let fn_vis = func.vis.clone();
+    
     // Construct memoizer function, which calls the original function.
     let syntax_names_tuple = quote::quote! { (#(#input_names),*) };
     let syntax_names_tuple_cloned = quote::quote! { (#(#input_names.clone()),*) };
@@ -276,7 +280,9 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     #[cfg(not(feature = "full"))]
     let memoizer = quote::quote! {
-        #sig {
+        #fn_vis fn #fn_name (
+            #(#input_names: #input_types),*
+        ) -> #return_type {
             {
                 let mut hm = &mut #store_ident.lock().unwrap();
                 if let Some(r) = hm.#get_fn(&#syntax_names_tuple_cloned) {
@@ -302,7 +308,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 fn check_signature(
     sig: &syn::Signature,
-) -> Result<(Vec<Box<syn::Type>>, Vec<Box<syn::Pat>>), syn::Error> {
+) -> Result<(Vec<Box<syn::Type>>, Vec<syn::Ident>), syn::Error> {
     if let syn::FnArg::Receiver(_) = sig.inputs[0] {
         return Err(syn::Error::new(
             sig.span(),
@@ -316,8 +322,8 @@ fn check_signature(
         if let syn::FnArg::Typed(ref arg) = a {
             types.push(arg.ty.clone());
 
-            if let syn::Pat::Ident(_) = &*arg.pat {
-                names.push(arg.pat.clone());
+            if let syn::Pat::Ident(patident) = &*arg.pat {
+                names.push(patident.ident.clone());
             } else {
                 return Err(syn::Error::new(
                     sig.span(),

@@ -36,29 +36,46 @@ fn main() {
 This is expanded into (with a few simplifications):
 
 ```rust
-// This is obviously further expanded before compiling.
-lazy_static! {
-  static ref MEMOIZED_MAPPING_HELLO : Mutex<HashMap<String, bool>>;
+std::thread_local! {
+  static MEMOIZED_MAPPING_HELLO : RefCell<HashMap<(String, usize), bool>> = RefCell::new(HashMap::new());
 }
 
-fn memoized_original_hello(arg: String, arg2: usize) -> bool {
+pub fn memoized_original_hello(arg: String, arg2: usize) -> bool {
   arg.len() % 2 == arg2
 }
 
+#[allow(unused_variables)]
 fn hello(arg: String, arg2: usize) -> bool {
-  {
-    let mut hm = &mut MEMOIZED_MAPPING_HELLO.lock().unwrap();
-    if let Some(r) = hm.get(&(arg.clone(), arg2.clone())) {
-      return r.clone();
-    }
+  let r = MEMOIZED_MAPPING_HELLO.with(|hm| {
+    let mut hm = hm.borrow_mut();
+    hm.get(&(arg.clone(), arg2.clone())).cloned()
+  });
+  if let Some(r) = r {
+    return r;
   }
+
   let r = memoized_original_hello(arg.clone(), arg2.clone());
-  hm.insert((arg, arg2), r.clone());
+
+  MEMOIZED_MAPPING_HELLO.with(|hm| {
+    let mut hm = hm.borrow_mut();
+    hm.insert((arg, arg2), r.clone());
+  });
+
   r
 }
+
 ```
 
 ## Further Functionality
+As can be seen in the above example, each thread has its own cache by default. If you would prefer
+that every thread share the same cache, you can specify the `SharedCache` option like below to wrap
+the cache in a `std::sync::Mutex`. For example:
+```rust
+#[memoize(SharedCache)]
+fn hello(key: String) -> ComplexStruct {
+  // ...
+}
+```
 
 You can choose to use an [LRU cache](https://crates.io/crates/lru). In fact, if
 you know that a memoized function has an unbounded number of different inputs,

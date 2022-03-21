@@ -28,6 +28,7 @@ enum CacheOption {
 }
 
 // To extend option parsing, add functionality here.
+#[allow(unreachable_code)]
 impl parse::Parse for CacheOption {
     fn parse(input: parse::ParseStream) -> syn::Result<Self> {
         let la = input.lookahead1();

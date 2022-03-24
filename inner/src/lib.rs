@@ -311,16 +311,18 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    (quote::quote! {
+    let vis = &func.vis;
+
+    quote::quote! {
         #renamed_fn
 
         #store
 
         #[allow(unused_variables)]
-        #sig {
+        #vis #sig {
             #memoizer
         }
-    })
+    }
     .into()
 }
 

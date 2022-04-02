@@ -6,6 +6,9 @@ jobs:
   build_and_test:
     name: Rust project
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features: ["full", ""]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -14,4 +17,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features full
+          args: --features ${{ matrix.features }}

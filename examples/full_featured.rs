@@ -1,6 +1,6 @@
 use memoize::memoize;
-use std::time::{Instant, Duration};
 use std::thread;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 struct ComplexStruct {
@@ -9,6 +9,7 @@ struct ComplexStruct {
     i: Instant,
 }
 
+#[cfg(feature = "full")]
 #[memoize(TimeToLive: Duration::from_secs(2), Capacity: 123)]
 fn hello(key: String) -> ComplexStruct {
     println!("hello: {}", key);
@@ -20,13 +21,16 @@ fn hello(key: String) -> ComplexStruct {
 }
 
 fn main() {
-    println!("result: {:?}", hello("ABC".to_string()));
-    println!("result: {:?}", hello("DEF".to_string()));
-    println!("result: {:?}", hello("ABC".to_string()));  //Same as first
-    thread::sleep(core::time::Duration::from_millis(2100));
-    println!("result: {:?}", hello("EFG".to_string()));
-    println!("result: {:?}", hello("ABC".to_string()));  //Refreshed
-    println!("result: {:?}", hello("EFG".to_string()));  //Same as first
-    println!("result: {:?}", hello("ABC".to_string()));  //Same as refreshed
-    println!("result: {:?}", memoized_original_hello("ABC".to_string()));
+    #[cfg(feature = "full")]
+    {
+        println!("result: {:?}", hello("ABC".to_string()));
+        println!("result: {:?}", hello("DEF".to_string()));
+        println!("result: {:?}", hello("ABC".to_string())); //Same as first
+        thread::sleep(core::time::Duration::from_millis(2100));
+        println!("result: {:?}", hello("EFG".to_string()));
+        println!("result: {:?}", hello("ABC".to_string())); //Refreshed
+        println!("result: {:?}", hello("EFG".to_string())); //Same as first
+        println!("result: {:?}", hello("ABC".to_string())); //Same as refreshed
+        println!("result: {:?}", memoized_original_hello("ABC".to_string()));
+    }
 }

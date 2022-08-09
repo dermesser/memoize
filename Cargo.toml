@@ -14,7 +14,7 @@ license = "MIT"
 
 memoize-inner = { path = "inner/", version = "0.2.1" }
 lazy_static = "1.4"
-lru = { version = "0.6", optional = true }
+lru = { version = "0.7", optional = true }
 
 [workspace]
 members = ["inner/"]

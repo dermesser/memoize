@@ -198,6 +198,9 @@ mod store {
  *
  * This mechanism can, in principle, be extended (in the source code) to any other cache mechanism.
  *
+ * `memoized_flush_<function name>()` allows you to clear the underlying memoization cache of a
+ * function. This function is generated with the same visibility as the memoized function.
+ *
  */
 #[proc_macro_attribute]
 pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -206,6 +209,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let fn_name = &sig.ident.to_string();
     let renamed_name = format!("memoized_original_{}", fn_name);
+    let flush_name = syn::Ident::new(format!("memoized_flush_{}", fn_name).as_str(), sig.span());
     let map_name = format!("memoized_mapping_{}", fn_name);
 
     // Extracted from the function signature.
@@ -313,9 +317,15 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let vis = &func.vis;
 
+    let flusher = quote::quote! {
+        #vis fn #flush_name() {
+            #store_ident.with(|hm| hm.borrow_mut().clear());
+        }
+    };
+
     quote::quote! {
         #renamed_fn
-
+        #flusher
         #store
 
         #[allow(unused_variables)]

@@ -12,4 +12,5 @@ fn main() {
     assert!(!hello("World".to_string(), 0));
     // Sometimes one might need the original function.
     assert!(!memoized_original_hello("World".to_string(), 0));
+    memoized_flush_hello();
 }

@@ -118,6 +118,11 @@ to live:
 The cached value will never be older than duration provided and instead
 recalculated on the next request.
 
+### Flushing
+
+If you memoize a function `f`, there will be a function called
+`memoized_flush_f()` that allows you to clear the memoization cache.
+
 ## Contributions
 
 ...are always welcome! This being my first procedural-macros crate, I am

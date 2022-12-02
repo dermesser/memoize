@@ -221,12 +221,11 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok((t, n)) => {
             input_types = t;
             input_names = n;
-        }
+        },
         Err(e) => return e.to_compile_error().into(),
     }
 
     let input_tuple_type = quote::quote! { (#(#input_types),*) };
-
     match &sig.output {
         syn::ReturnType::Default => return_type = quote::quote! { () },
         syn::ReturnType::Type(_, ty) => return_type = ty.to_token_stream(),
@@ -339,6 +338,9 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 fn check_signature(
     sig: &syn::Signature,
 ) -> Result<(Vec<Box<syn::Type>>, Vec<syn::Ident>), syn::Error> {
+    if sig.inputs.is_empty() {
+        return Ok((vec![], vec![]));
+    }
     if let syn::FnArg::Receiver(_) = sig.inputs[0] {
         return Err(syn::Error::new(
             sig.span(),

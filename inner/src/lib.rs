@@ -344,7 +344,7 @@ fn check_signature(
     if let syn::FnArg::Receiver(_) = sig.inputs[0] {
         return Err(syn::Error::new(
             sig.span(),
-            "Cannot memoize method (self-receiver) without arguments!",
+            "Cannot memoize methods!",
         ));
     }
 

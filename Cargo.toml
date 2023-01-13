@@ -16,9 +16,14 @@ memoize-inner = { path = "inner/", version = "0.3" }
 lazy_static = "1.4"
 lru = { version = "0.7", optional = true }
 
+[dev-dependencies]
+
+rustc-hash = "1.1.0"
+ahash = "0.8.2"
+
 [workspace]
 members = ["inner/"]
 
 [features]
-default = []
+default = ["full"]
 full = ["lru", "memoize-inner/full"]

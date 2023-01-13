@@ -46,19 +46,19 @@ pub fn memoized_original_hello(arg: String, arg2: usize) -> bool {
 
 #[allow(unused_variables)]
 fn hello(arg: String, arg2: usize) -> bool {
-  let r = MEMOIZED_MAPPING_HELLO.with(|hm| {
-    let mut hm = hm.borrow_mut();
-    hm.get(&(arg.clone(), arg2.clone())).cloned()
+  let ATTR_MEMOIZE_RETURN__ = MEMOIZED_MAPPING_HELLO.with(|ATTR_MEMOIZE_HM__| {
+    let mut ATTR_MEMOIZE_HM__ = ATTR_MEMOIZE_HM__.borrow_mut();
+    ATTR_MEMOIZE_HM__.get(&(arg.clone(), arg2.clone())).cloned()
   });
-  if let Some(r) = r {
-    return r;
+  if let Some(ATTR_MEMOIZE_RETURN__) = ATTR_MEMOIZE_RETURN__ {
+    return ATTR_MEMOIZE_RETURN__;
   }
 
-  let r = memoized_original_hello(arg.clone(), arg2.clone());
+  let ATTR_MEMOIZE_RETURN__ = memoized_original_hello(arg.clone(), arg2.clone());
 
-  MEMOIZED_MAPPING_HELLO.with(|hm| {
-    let mut hm = hm.borrow_mut();
-    hm.insert((arg, arg2), r.clone());
+  MEMOIZED_MAPPING_HELLO.with(|ATTR_MEMOIZE_HM__| {
+    let mut ATTR_MEMOIZE_HM__ = ATTR_MEMOIZE_HM__.borrow_mut();
+    ATTR_MEMOIZE_HM__.insert((arg, arg2), ATTR_MEMOIZE_RETURN__.clone());
   });
 
   r

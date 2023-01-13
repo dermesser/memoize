@@ -221,7 +221,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok((t, n)) => {
             input_types = t;
             input_names = n;
-        },
+        }
         Err(e) => return e.to_compile_error().into(),
     }
 
@@ -265,52 +265,52 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (insert_fn, get_fn) = store::cache_access_methods(&options);
     let (read_memo, memoize) = match options.time_to_live {
         None => (
-            quote::quote!(hm.#get_fn(&#syntax_names_tuple_cloned).cloned()),
-            quote::quote!(hm.#insert_fn(#syntax_names_tuple, r.clone());),
+            quote::quote!(ATTR_MEMOIZE_HM__.#get_fn(&#syntax_names_tuple_cloned).cloned()),
+            quote::quote!(ATTR_MEMOIZE_HM__.#insert_fn(#syntax_names_tuple, ATTR_MEMOIZE_RETURN__.clone());),
         ),
         Some(ttl) => (
             quote::quote! {
-                hm.#get_fn(&#syntax_names_tuple_cloned).and_then(|(last_updated, r)|
-                    (last_updated.elapsed() < #ttl).then(|| r.clone())
+                ATTR_MEMOIZE_HM__.#get_fn(&#syntax_names_tuple_cloned).and_then(|(last_updated, ATTR_MEMOIZE_RETURN__)|
+                    (last_updated.elapsed() < #ttl).then(|| ATTR_MEMOIZE_RETURN__.clone())
                 )
             },
-            quote::quote!(hm.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), r.clone()));),
+            quote::quote!(ATTR_MEMOIZE_HM__.#insert_fn(#syntax_names_tuple, (std::time::Instant::now(), ATTR_MEMOIZE_RETURN__.clone()));),
         ),
     };
 
     let memoizer = if options.shared_cache {
         quote::quote! {
             {
-                let mut hm = #store_ident.lock().unwrap();
-                if let Some(r) = #read_memo {
-                    return r
+                let mut ATTR_MEMOIZE_HM__ = #store_ident.lock().unwrap();
+                if let Some(ATTR_MEMOIZE_RETURN__) = #read_memo {
+                    return ATTR_MEMOIZE_RETURN__
                 }
             }
-            let r = #memoized_id(#(#input_names.clone()),*);
+            let ATTR_MEMOIZE_RETURN__ = #memoized_id(#(#input_names.clone()),*);
 
-            let mut hm = #store_ident.lock().unwrap();
+            let mut ATTR_MEMOIZE_HM__ = #store_ident.lock().unwrap();
             #memoize
 
-            r
+            ATTR_MEMOIZE_RETURN__
         }
     } else {
         quote::quote! {
-            let r = #store_ident.with(|hm| {
-                let mut hm = hm.borrow_mut();
+            let ATTR_MEMOIZE_RETURN__ = #store_ident.with(|ATTR_MEMOIZE_HM__| {
+                let mut ATTR_MEMOIZE_HM__ = ATTR_MEMOIZE_HM__.borrow_mut();
                 #read_memo
             });
-            if let Some(r) = r {
-                return r;
+            if let Some(ATTR_MEMOIZE_RETURN__) = ATTR_MEMOIZE_RETURN__ {
+                return ATTR_MEMOIZE_RETURN__;
             }
 
-            let r = #memoized_id(#(#input_names.clone()),*);
+            let ATTR_MEMOIZE_RETURN__ = #memoized_id(#(#input_names.clone()),*);
 
-            #store_ident.with(|hm| {
-                let mut hm = hm.borrow_mut();
+            #store_ident.with(|ATTR_MEMOIZE_HM__| {
+                let mut ATTR_MEMOIZE_HM__ = ATTR_MEMOIZE_HM__.borrow_mut();
                 #memoize
             });
 
-            r
+            ATTR_MEMOIZE_RETURN__
         }
     };
 
@@ -318,7 +318,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let flusher = quote::quote! {
         #vis fn #flush_name() {
-            #store_ident.with(|hm| hm.borrow_mut().clear());
+            #store_ident.with(|ATTR_MEMOIZE_HM__| ATTR_MEMOIZE_HM__.borrow_mut().clear());
         }
     };
 
@@ -342,10 +342,7 @@ fn check_signature(
         return Ok((vec![], vec![]));
     }
     if let syn::FnArg::Receiver(_) = sig.inputs[0] {
-        return Err(syn::Error::new(
-            sig.span(),
-            "Cannot memoize methods!",
-        ));
+        return Err(syn::Error::new(sig.span(), "Cannot memoize methods!"));
     }
 
     let mut types = vec![];

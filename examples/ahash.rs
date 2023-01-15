@@ -1,6 +1,5 @@
-
-use memoize::memoize;
 use ahash::{HashMap, HashMapExt};
+use memoize::memoize;
 
 #[cfg(feature = "full")]
 #[memoize(CustomHasher: HashMap)]
@@ -21,6 +20,5 @@ fn main() {
 
 #[cfg(not(feature = "full"))]
 fn main() {
-	println!("Use the \"full\" feature to execute this example");
+    println!("Use the \"full\" feature to execute this example");
 }
-

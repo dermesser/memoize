@@ -1,4 +1,3 @@
-
 use memoize::memoize;
 use rustc_hash::FxHashMap;
 
@@ -21,6 +20,5 @@ fn main() {
 
 #[cfg(not(feature = "full"))]
 fn main() {
-	println!("Use the \"full\" feature to execute this example");
+    println!("Use the \"full\" feature to execute this example");
 }
-

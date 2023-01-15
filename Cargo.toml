@@ -25,5 +25,5 @@ ahash = "0.8.2"
 members = ["inner/"]
 
 [features]
-default = []
+default = ["full"]
 full = ["lru", "memoize-inner/full"]

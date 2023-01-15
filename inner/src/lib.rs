@@ -11,7 +11,7 @@ mod kw {
     syn::custom_keyword!(TimeToLive);
     syn::custom_keyword!(SharedCache);
     syn::custom_keyword!(CustomHasher);
-	syn::custom_keyword!(HasherInit);
+    syn::custom_keyword!(HasherInit);
     syn::custom_punctuation!(Colon, :);
 }
 
@@ -72,12 +72,12 @@ impl parse::Parse for CacheOption {
             let cap: syn::Path = input.parse().unwrap();
             return Ok(CacheOption::CustomHasher(cap));
         }
-		if la.peek(kw::HasherInit) {
-			input.parse::<kw::HasherInit>().unwrap();
-			input.parse::<kw::Colon>().unwrap();
-			let cap: syn::ExprCall = input.parse().unwrap();
-			return Ok(CacheOption::HasherInit(cap));
-		}
+        if la.peek(kw::HasherInit) {
+            input.parse::<kw::HasherInit>().unwrap();
+            input.parse::<kw::Colon>().unwrap();
+            let cap: syn::ExprCall = input.parse().unwrap();
+            return Ok(CacheOption::HasherInit(cap));
+        }
         Err(la.error())
     }
 }
@@ -93,9 +93,7 @@ impl parse::Parse for CacheOptions {
                 CacheOption::LRUMaxEntries(cap) => opts.lru_max_entries = Some(cap),
                 CacheOption::TimeToLive(sec) => opts.time_to_live = Some(sec),
                 CacheOption::CustomHasher(hasher) => opts.custom_hasher = Some(hasher),
-                CacheOption::HasherInit(init) => {
-                    opts.custom_hasher_initializer = Some(init)
-                }
+                CacheOption::HasherInit(init) => opts.custom_hasher_initializer = Some(init),
                 CacheOption::SharedCache => opts.shared_cache = true,
             }
         }
@@ -121,11 +119,12 @@ mod store {
                 quote::quote! { #hasher<#key_type, #value_type> },
                 quote::quote! { #hasher::new() },
             );
+        } else {
+            (
+                quote::quote! { std::collections::HashMap<#key_type, #value_type> },
+                quote::quote! { std::collections::HashMap::new() },
+            )
         }
-        (
-            quote::quote! { std::collections::HashMap<#key_type, #value_type> },
-            quote::quote! { std::collections::HashMap::new() },
-        )
     }
 
     /// Returns names of methods as TokenStreams to insert and get (respectively) elements from a
@@ -160,28 +159,34 @@ mod store {
         // This is the unbounded default.
         match options.lru_max_entries {
             None => {
-				if let Some(hasher) = &options.custom_hasher {
+                if let Some(hasher) = &options.custom_hasher {
                     if let Some(hasher_init) = &options.custom_hasher_initializer {
-						return (
-							quote::quote! { #hasher<#key_type, #value_type> },
-							quote::quote! { #hasher_init },
-						);
-					} else {
-						return (
-							quote::quote! { #hasher<#key_type, #value_type> },
-							quote::quote! { #hasher::new() },
-						)
-					}
+                        return (
+                            quote::quote! { #hasher<#key_type, #value_type> },
+                            quote::quote! { #hasher_init },
+                        );
+                    } else {
+                        return (
+                            quote::quote! { #hasher<#key_type, #value_type> },
+                            quote::quote! { #hasher::new() },
+                        );
+                    }
                 }
                 (
                     quote::quote! { std::collections::HashMap<#key_type, #value_type> },
                     quote::quote! { std::collections::HashMap::new() },
                 )
             }
-            Some(cap) => (
-                quote::quote! { ::memoize::lru::LruCache<#key_type, #value_type> },
-                quote::quote! { ::memoize::lru::LruCache::new(#cap) },
-            ),
+            Some(cap) => {
+                if let Some(_) = &options.custom_hasher {
+                    panic!("You can't use LRUMaxEntries and a Custom Hasher. Remove `LRUMaxEntries` from the attribute");
+                } else {
+                    (
+                        quote::quote! { ::memoize::lru::LruCache<#key_type, #value_type> },
+                        quote::quote! { ::memoize::lru::LruCache::new(#cap) },
+                    )
+                }
+            }
         }
     }
 
@@ -238,7 +243,7 @@ mod store {
  * `#[memoize(TimeToLive: Duration::from_secs(2))]`. In that case, cached value will be actual
  * no longer than duration provided and refreshed with next request. If you prefer chrono::Duration,
  * it can be also used: `#[memoize(TimeToLive: chrono::Duration::hours(9).to_std().unwrap()]`
- * 
+ *
  * You can also specify a custom hasher: `#[memoize(CustomHasher: ahash::HashMap)]`, as some hashers don't use a `new()` method to initialize them, you can also specifiy a `HasherInit` parameter, like this: `#[memoize(CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]`, so it will initialize your `FxHashMap` with `FxHashMap::default()` insteado of `FxHashMap::new()`
  *
  * This mechanism can, in principle, be extended (in the source code) to any other cache mechanism.

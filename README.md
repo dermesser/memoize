@@ -118,6 +118,18 @@ to live:
 The cached value will never be older than duration provided and instead
 recalculated on the next request.
 
+You can also specifiy a **custom hasher**, like [AHash](https://github.com/tkaitchuck/aHash) using `CustomHasher`.
+
+```rust
+#[memoize(CustomHasher: ahash::HashMap)]
+```
+
+As some hashers initializing functions other than `new()`, you can specifiy a `HasherInit` function call:
+
+```rust
+#[memoize(CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]
+```
+
 ### Flushing
 
 If you memoize a function `f`, there will be a function called

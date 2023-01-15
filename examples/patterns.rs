@@ -19,7 +19,7 @@ fn get_value(_enum @ OnlyOne::Value(value): OnlyOne) -> i32 {
 fn main() {
     // `manhattan_distance` is only called once here.
     assert_eq!(manhattan_distance((1, 1), (1, 3)), 2);
-    
+
     // Same with `get_value`.
     assert_eq!(get_value(OnlyOne::Value(0)), 0);
 }

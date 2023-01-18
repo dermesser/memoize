@@ -1,6 +1,6 @@
 [package]
 name = "memoize-inner"
-version = "0.3.2"
+version = "0.4.0"
 description = "Helper crate for memoize."
 authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
 homepage = "https://github.com/dermesser/memoize"

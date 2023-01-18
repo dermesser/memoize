@@ -1,6 +1,5 @@
 #![crate_type = "proc-macro"]
 #![allow(unused_imports)] // Spurious complaints about a required trait import.
-
 use syn::{self, parse, parse_macro_input, spanned::Spanned, Expr, ExprCall, ItemFn, Path};
 
 use proc_macro::TokenStream;
@@ -179,7 +178,10 @@ mod store {
             }
             Some(cap) => {
                 if let Some(_) = &options.custom_hasher {
-                    panic!("You can't use LRUMaxEntries and a Custom Hasher. Remove `LRUMaxEntries` from the attribute");
+                    (
+                        quote::quote! { compile_error!("Cannot use LRU cache and a custom hasher at the same time") },
+                        quote::quote! { std::collections::HashMap::new() },
+                    )
                 } else {
                     (
                         quote::quote! { ::memoize::lru::LruCache<#key_type, #value_type> },

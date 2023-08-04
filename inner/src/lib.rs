@@ -368,9 +368,17 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let vis = &func.vis;
 
-    let flusher = quote::quote! {
-        #vis fn #flush_name() {
-            #store_ident.with(|ATTR_MEMOIZE_HM__| ATTR_MEMOIZE_HM__.borrow_mut().clear());
+    let flusher = if options.shared_cache {
+        quote::quote! {
+            #vis fn #flush_name() {
+                #store_ident.lock().unwrap().clear();
+            }
+        }
+    } else {
+        quote::quote! {
+            #vis fn #flush_name() {
+                #store_ident.with(|ATTR_MEMOIZE_HM__| ATTR_MEMOIZE_HM__.borrow_mut().clear());
+            }
         }
     };
 

@@ -218,11 +218,11 @@ mod store {
 /**
  * memoize is an attribute to create a memoized version of a (simple enough) function.
  *
- * So far, it works on functions with one or more arguments which are `Clone`- and `Hash`-able,
- * returning a `Clone`-able value. Several clones happen within the storage and recall layer, with
- * the assumption being that `memoize` is used to cache such expensive functions that very few
- * `clone()`s do not matter. `memoize` doesn't work on methods (functions with `[&/&mut/]self`
- * receiver).
+ * So far, it works on non-method functions with one or more arguments returning a [`Clone`]-able
+ * value. Arguments that are cached must be [`Clone`]-able and [`Hash`]-able as well. Several clones
+ * happen within the storage and recall layer, with the assumption being that `memoize` is used to
+ * cache such expensive functions that very few `clone()`s do not matter. `memoize` doesn't work on
+ * methods (functions with `[&/&mut/]self` receiver).
  *
  * Calls are memoized for the lifetime of a program, using a statically allocated, Mutex-protected
  * HashMap.
@@ -245,6 +245,10 @@ mod store {
  * If you need to use the un-memoized function, it is always available as `memoized_original_{fn}`,
  * in this case: `memoized_original_hello()`.
  *
+ * Parameters can be ignored by the cache using the `Ignore` parameter. `Ignore` can be specified
+ * multiple times, once per each parameter. `Ignore`d parameters do not need to implement [`Clone`]
+ * or [`Hash`]. 
+ * 
  * See the `examples` for concrete applications.
  *
  * *The following descriptions need the `full` feature enabled.*

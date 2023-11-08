@@ -11,6 +11,7 @@ mod kw {
     syn::custom_keyword!(SharedCache);
     syn::custom_keyword!(CustomHasher);
     syn::custom_keyword!(HasherInit);
+    syn::custom_keyword!(Ignore);
     syn::custom_punctuation!(Colon, :);
 }
 
@@ -21,6 +22,7 @@ struct CacheOptions {
     shared_cache: bool,
     custom_hasher: Option<Path>,
     custom_hasher_initializer: Option<ExprCall>,
+    ignore: Vec<syn::Ident>,
 }
 
 #[derive(Clone)]
@@ -30,6 +32,7 @@ enum CacheOption {
     SharedCache,
     CustomHasher(Path),
     HasherInit(ExprCall),
+    Ignore(syn::Ident),
 }
 
 // To extend option parsing, add functionality here.
@@ -77,6 +80,12 @@ impl parse::Parse for CacheOption {
             let cap: syn::ExprCall = input.parse().unwrap();
             return Ok(CacheOption::HasherInit(cap));
         }
+        if la.peek(kw::Ignore) {
+            input.parse::<kw::Ignore>().unwrap();
+            input.parse::<kw::Colon>().unwrap();
+            let ignore_ident = input.parse::<syn::Ident>().unwrap();
+            return Ok(CacheOption::Ignore(ignore_ident));
+        }
         Err(la.error())
     }
 }
@@ -94,6 +103,7 @@ impl parse::Parse for CacheOptions {
                 CacheOption::CustomHasher(hasher) => opts.custom_hasher = Some(hasher),
                 CacheOption::HasherInit(init) => opts.custom_hasher_initializer = Some(init),
                 CacheOption::SharedCache => opts.shared_cache = true,
+                CacheOption::Ignore(ident) => opts.ignore.push(ident),
             }
         }
         Ok(opts)
@@ -264,27 +274,60 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let flush_name = syn::Ident::new(format!("memoized_flush_{}", fn_name).as_str(), sig.span());
     let map_name = format!("memoized_mapping_{}", fn_name);
 
-    // Extracted from the function signature.
-    let input_types: Vec<Box<syn::Type>>;
-    let input_names: Vec<syn::Ident>;
-    let return_type;
-
-    match check_signature(sig) {
-        Ok((t, n)) => {
-            input_types = t;
-            input_names = n;
-        }
-        Err(e) => return e.to_compile_error().into(),
-    }
-
-    let input_tuple_type = quote::quote! { (#(#input_types),*) };
-    match &sig.output {
-        syn::ReturnType::Default => return_type = quote::quote! { () },
-        syn::ReturnType::Type(_, ty) => return_type = ty.to_token_stream(),
+    if let syn::FnArg::Receiver(_) = sig.inputs[0] {
+        return quote::quote! { compile_error!("Cannot memoize methods!"); }.into();
     }
 
     // Parse options from macro attributes
     let options: CacheOptions = syn::parse(attr.clone()).unwrap();
+
+    // Extracted from the function signature.
+    let input_params = match check_signature(sig, &options) {
+        Ok(p) => p,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    // Input types and names that are actually stored in the cache.
+    let memoized_input_types: Vec<Box<syn::Type>> = input_params
+        .iter()
+        .filter_map(|p| {
+            if p.is_memoized {
+                Some(p.arg_type.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    let memoized_input_names: Vec<syn::Ident> = input_params
+        .iter()
+        .filter_map(|p| {
+            if p.is_memoized {
+                Some(p.arg_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // For each input, expression to be passe through to the original function.
+    // Cached arguments are cloned, original arguments are forwarded as-is
+    let fn_forwarded_exprs: Vec<_> = input_params
+        .iter()
+        .map(|p| {
+            let ident = p.arg_name.clone();
+            if p.is_memoized {
+                quote::quote! { #ident.clone() }
+            } else {
+                quote::quote! { #ident }
+            }
+        })
+        .collect();
+
+    let input_tuple_type = quote::quote! { (#(#memoized_input_types),*) };
+    let return_type = match &sig.output {
+        syn::ReturnType::Default => quote::quote! { () },
+        syn::ReturnType::Type(_, ty) => ty.to_token_stream(),
+    };
 
     // Construct storage for the memoized keys and return values.
     let store_ident = syn::Ident::new(&map_name.to_uppercase(), sig.span());
@@ -312,8 +355,9 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let memoized_id = &renamed_fn.sig.ident;
 
     // Construct memoizer function, which calls the original function.
-    let syntax_names_tuple = quote::quote! { (#(#input_names),*) };
-    let syntax_names_tuple_cloned = quote::quote! { (#(#input_names.clone()),*) };
+    let syntax_names_tuple = quote::quote! { (#(#memoized_input_names),*) };
+    let syntax_names_tuple_cloned = quote::quote! { (#(#memoized_input_names.clone()),*) };
+    let forwarding_tuple = quote::quote! { (#(#fn_forwarded_exprs),*) };
     let (insert_fn, get_fn) = store::cache_access_methods(&options);
     let (read_memo, memoize) = match options.time_to_live {
         None => (
@@ -338,7 +382,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
                     return ATTR_MEMOIZE_RETURN__
                 }
             }
-            let ATTR_MEMOIZE_RETURN__ = #memoized_id(#(#input_names.clone()),*);
+            let ATTR_MEMOIZE_RETURN__ = #memoized_id #forwarding_tuple;
 
             let mut ATTR_MEMOIZE_HM__ = #store_ident.lock().unwrap();
             #memoize
@@ -355,7 +399,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
                 return ATTR_MEMOIZE_RETURN__;
             }
 
-            let ATTR_MEMOIZE_RETURN__ = #memoized_id(#(#input_names.clone()),*);
+            let ATTR_MEMOIZE_RETURN__ = #memoized_id #forwarding_tuple;
 
             #store_ident.with(|ATTR_MEMOIZE_HM__| {
                 let mut ATTR_MEMOIZE_HM__ = ATTR_MEMOIZE_HM__.borrow_mut();
@@ -395,24 +439,40 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
+/// An argument of the memoized function.
+struct FnArgument {
+    /// Type of the argument.
+    arg_type: Box<syn::Type>,
+
+    /// Identifier (name) of the argument.
+    arg_name: syn::Ident,
+
+    /// Whether or not this specific argument is included in the memoization.
+    is_memoized: bool,
+}
+
 fn check_signature(
     sig: &syn::Signature,
-) -> Result<(Vec<Box<syn::Type>>, Vec<syn::Ident>), syn::Error> {
+    options: &CacheOptions,
+) -> Result<Vec<FnArgument>, syn::Error> {
     if sig.inputs.is_empty() {
-        return Ok((vec![], vec![]));
-    }
-    if let syn::FnArg::Receiver(_) = sig.inputs[0] {
-        return Err(syn::Error::new(sig.span(), "Cannot memoize methods!"));
+        return Ok(vec![]);
     }
 
-    let mut types = vec![];
-    let mut names = vec![];
+    let mut params = vec![];
+
     for a in &sig.inputs {
         if let syn::FnArg::Typed(ref arg) = a {
-            types.push(arg.ty.clone());
+            let arg_type = arg.ty.clone();
 
             if let syn::Pat::Ident(patident) = &*arg.pat {
-                names.push(patident.ident.clone());
+                let arg_name = patident.ident.clone();
+                let is_memoized = !options.ignore.contains(&arg_name);
+                params.push(FnArgument {
+                    arg_type,
+                    arg_name,
+                    is_memoized,
+                });
             } else {
                 return Err(syn::Error::new(
                     sig.span(),
@@ -421,7 +481,7 @@ fn check_signature(
             }
         }
     }
-    Ok((types, names))
+    Ok(params)
 }
 
 #[cfg(test)]

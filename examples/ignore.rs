@@ -19,7 +19,6 @@ fn add2(a: u32, b: u32, call_count: &mut u32) -> u32 {
     a + b
 }
 
-#[cfg(feature = "full")]
 fn main() {
     // Note that the third argument is not `Clone` but can still be passed through.
     assert_eq!(add(1, 2, C {c: 3}, 4), 10);

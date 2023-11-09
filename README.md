@@ -130,6 +130,23 @@ As some hashers initializing functions other than `new()`, you can specifiy a `H
 #[memoize(CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]
 ```
 
+Sometimes, you can't or don't want to store data as part of the cache. In those cases, you can use
+the `Ignore` parameter in the `#[memoize]` macro to ignore an argument. Any `Ignore`d arguments no
+longer need to be `Clone`-able, since they are not stored as part of the argument set, and changing
+an `Ignore`d argument will not trigger calling the function again. You can `Ignore` multiple
+arugments by specifying the `Ignore` parameter multiple times.
+
+```rust
+// `Ignore: count_calls` lets our function take a `&mut u32` argument, which is normally not
+// possible because it is not `Clone`-able.
+#[memoize(Ignore: count_calls)]
+fn add(a: u32, b: u32, count_calls: &mut u32) -> u32 {
+    // Keep track of the number of times the underlying function is called.
+	*count_calls += 1;
+	a + b
+}
+```
+
 ### Flushing
 
 If you memoize a function `f`, there will be a function called

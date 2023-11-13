@@ -278,7 +278,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let flush_name = syn::Ident::new(format!("memoized_flush_{}", fn_name).as_str(), sig.span());
     let map_name = format!("memoized_mapping_{}", fn_name);
 
-    if let syn::FnArg::Receiver(_) = sig.inputs[0] {
+    if let Some(syn::FnArg::Receiver(_)) = sig.inputs.first() {
         return quote::quote! { compile_error!("Cannot memoize methods!"); }.into();
     }
 

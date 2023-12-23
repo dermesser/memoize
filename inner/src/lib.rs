@@ -435,7 +435,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         #flusher
         #store
 
-        #[allow(unused_variables)]
+        #[allow(unused_variables, unused_mut)]
         #vis #sig {
             #memoizer
         }

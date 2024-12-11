@@ -276,6 +276,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name = &sig.ident.to_string();
     let renamed_name = format!("memoized_original_{}", fn_name);
     let flush_name = syn::Ident::new(format!("memoized_flush_{}", fn_name).as_str(), sig.span());
+    let size_name = syn::Ident::new(format!("memoized_size_{}", fn_name).as_str(), sig.span());
     let map_name = format!("memoized_mapping_{}", fn_name);
 
     if let Some(syn::FnArg::Receiver(_)) = sig.inputs.first() {
@@ -430,9 +431,24 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    let size_func = if options.shared_cache {
+        quote::quote! {
+            #vis fn #size_name() -> usize {
+                #store_ident.lock().unwrap().len()
+            }
+        }
+    } else {
+        quote::quote! {
+            #vis fn #size_name() -> usize {
+                #store_ident.with(|ATTR_MEMOIZE_HM__| ATTR_MEMOIZE_HM__.borrow().len())
+            }
+        }
+    };
+
     quote::quote! {
         #renamed_fn
         #flusher
+        #size_func
         #store
 
         #[allow(unused_variables, unused_mut)]

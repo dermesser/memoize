@@ -5,7 +5,7 @@
 [![CI](https://github.com/dermesser/rex/workflows/CI/badge.svg)](https://github.com/dermesser/memoize/actions?query=workflow%3ACI)
 
 A `#[memoize]` attribute for somewhat simple Rust functions: That is, functions
-with one or more `Clone`-able arguments, and a `Clone`-able return type. That's it.
+with one or more `Clone`- and `Hash`-able arguments, and a `Clone`-able return type. That's it.
 
 **NEWS**: The crate has been updated so that you don't need to separately import `lru`,
     `lazy_static`, and other dependencies. Now everything should work automatically. Remember to

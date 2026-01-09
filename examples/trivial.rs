@@ -1,7 +1,8 @@
 use memoize::memoize;
 
 #[memoize]
-fn hello(arg: String, arg2: usize) -> bool {
+/// This is a basic function.
+pub fn hello(arg: String, arg2: usize) -> bool {
     println!("{} => {}", arg, arg2);
     arg.len() % 2 == arg2
 }

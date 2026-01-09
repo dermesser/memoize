@@ -396,6 +396,8 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Rename original function.
     let mut renamed_fn = func.clone();
     renamed_fn.sig.ident = syn::Ident::new(&renamed_name, func.sig.span());
+    let doco = renamed_fn.attrs.clone();
+    renamed_fn.attrs.clear();
     let memoized_id = &renamed_fn.sig.ident;
 
     // Construct memoizer function, which calls the original function.
@@ -510,6 +512,7 @@ pub fn memoize(attr: TokenStream, item: TokenStream) -> TokenStream {
         #size_func
         #store
 
+        #(#doco)*
         #[allow(unused_variables, unused_mut)]
         #vis #sig {
             #memoizer
